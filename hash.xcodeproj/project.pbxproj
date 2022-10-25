@@ -7,7 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		34CCE33128F9EA5C00C2600D /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 34CCE33028F9EA5C00C2600D /* main.c */; };
+		34E210A72908315000230188 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 34E210A62908315000230188 /* main.c */; };
+		34E210B329083C4800230188 /* hashtab.c in Sources */ = {isa = PBXBuildFile; fileRef = 34E210A929083C4800230188 /* hashtab.c */; };
+		34E210B429083C4800230188 /* makefile in Sources */ = {isa = PBXBuildFile; fileRef = 34E210AA29083C4800230188 /* makefile */; };
+		34E210B529083C4800230188 /* listutils.c in Sources */ = {isa = PBXBuildFile; fileRef = 34E210AC29083C4800230188 /* listutils.c */; };
+		34E210B629083C4800230188 /* rsrc.c in Sources */ = {isa = PBXBuildFile; fileRef = 34E210B229083C4800230188 /* rsrc.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,7 +28,16 @@
 
 /* Begin PBXFileReference section */
 		34CCE32D28F9EA5C00C2600D /* hash */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = hash; sourceTree = BUILT_PRODUCTS_DIR; };
-		34CCE33028F9EA5C00C2600D /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		34E210A62908315000230188 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		34E210A829083C4800230188 /* listutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = listutils.h; sourceTree = "<group>"; };
+		34E210A929083C4800230188 /* hashtab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hashtab.c; sourceTree = "<group>"; };
+		34E210AA29083C4800230188 /* makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = makefile; sourceTree = "<group>"; };
+		34E210AC29083C4800230188 /* listutils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = listutils.c; sourceTree = "<group>"; };
+		34E210AE29083C4800230188 /* iot_doubly_linked_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = iot_doubly_linked_list.h; sourceTree = "<group>"; };
+		34E210AF29083C4800230188 /* rsrc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rsrc.h; sourceTree = "<group>"; };
+		34E210B029083C4800230188 /* hashtab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hashtab.h; sourceTree = "<group>"; };
+		34E210B129083C4800230188 /* iot_doubly_linked_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = iot_doubly_linked_list.h; sourceTree = "<group>"; };
+		34E210B229083C4800230188 /* rsrc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = rsrc.c; path = rsrc/rsrc.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +54,14 @@
 		34CCE32428F9EA5B00C2600D = {
 			isa = PBXGroup;
 			children = (
+				34E210A929083C4800230188 /* hashtab.c */,
+				34E210B029083C4800230188 /* hashtab.h */,
+				34E210AD29083C4800230188 /* include */,
+				34E210B129083C4800230188 /* iot_doubly_linked_list.h */,
+				34E210AC29083C4800230188 /* listutils.c */,
+				34E210A829083C4800230188 /* listutils.h */,
+				34E210AA29083C4800230188 /* makefile */,
+				34E210B229083C4800230188 /* rsrc.c */,
 				34CCE32F28F9EA5C00C2600D /* hash */,
 				34CCE32E28F9EA5C00C2600D /* Products */,
 			);
@@ -57,9 +78,19 @@
 		34CCE32F28F9EA5C00C2600D /* hash */ = {
 			isa = PBXGroup;
 			children = (
-				34CCE33028F9EA5C00C2600D /* main.c */,
+				34E210A62908315000230188 /* main.c */,
 			);
 			path = hash;
+			sourceTree = "<group>";
+		};
+		34E210AD29083C4800230188 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				34E210AE29083C4800230188 /* iot_doubly_linked_list.h */,
+				34E210AF29083C4800230188 /* rsrc.h */,
+			);
+			name = include;
+			path = rsrc/include;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,7 +150,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				34CCE33128F9EA5C00C2600D /* main.c in Sources */,
+				34E210B629083C4800230188 /* rsrc.c in Sources */,
+				34E210A72908315000230188 /* main.c in Sources */,
+				34E210B529083C4800230188 /* listutils.c in Sources */,
+				34E210B329083C4800230188 /* hashtab.c in Sources */,
+				34E210B429083C4800230188 /* makefile in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

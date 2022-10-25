@@ -1,0 +1,3 @@
+[submodule "rsrc"]
+	path = rsrc
+	url = http://github.com/TRIA/rsrc
