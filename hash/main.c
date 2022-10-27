@@ -31,24 +31,24 @@ int main(int argc, const char * argv[]) {
 	for (int i = 0; i < NUMINTKEYS_H1; i++) {
 		int n = rand();
 		
-		if (htIAddVal(h1, n, (void *)n) != 1) {
+		if (iHtIAddVal(h1, n, (void *)(long)n) != 1) {
 			printf ("Didn't add %d\n", n);
 		}
 	}
-	htPrintStats(h1);
+	vHtPrintStats(h1);
 	// Now check if the values were right
 	srand (1); // restart the sequence
 	errors = 0;
 	for (int i = 0; i < NUMINTKEYS_H1; i++) {
 		int n = rand();
-		hashent_t *h = htIFindEntry(h1, n);
+		hashent_t *h = pxHtIFindEntry(h1, n);
 		
 		if (!h) {
 			printf ("Key didn't match, key %d\n", n);
 			errors++;
 			continue;
 		}
-		if ((unsigned)h->uintvalue != n) {
+		if ((unsigned)h->ulValue != n) {
 			printf ("Value didn't match expected value %d\n", n);
 			errors++;
 		}
@@ -58,21 +58,21 @@ int main(int argc, const char * argv[]) {
 	
 	int total = 0;
 	htIterator_t it;
-	htInitIterator (&it, h1);
+	vHtInitIterator (&it, h1);
 	errors = 0;
-	for (hashent_t *w; (w = htIteratorNext(&it));) {
+	for (hashent_t *w; (w = pxHtIteratorNext(&it));) {
 		total++;
-		if (total > h1->curEntries) {
+		if (total > h1->ulCurEntries) {
 			printf ("visiting too many entries (looping too far)\n");
 			errors++;
 			break;
 		}
-		if (w->key != w->uintvalue) {
-			printf ("Mismatch item %d key %d value %d\n", total, w->key, w->uintvalue);
+		if (w->ulKey != w->ulValue) {
+			printf ("Mismatch item %d key %d value %d\n", total, w->ulKey, w->ulValue);
 			errors++;
 		}
 	}
-	if (total != h1->curEntries)
+	if (total != h1->ulCurEntries)
 		errors++;
 	printresult(errors, "Testing iterator by visiting all entries in table");
 
@@ -80,40 +80,40 @@ int main(int argc, const char * argv[]) {
 	errors = 0;
 	htFOREACH(h1it,w2,h1) {
 		total++;
-		if (total > h1->curEntries) {
+		if (total > h1->ulCurEntries) {
 			printf ("visiting too many entries, aborting\n");
 			errors++;
 			break;
 		}
-		if (w2->key != w2->uintvalue) {
-			printf ("Mismatch item %d key %d value %d\n", total, w2->key, w2->uintvalue);
+		if (w2->ulKey != w2->ulValue) {
+			printf ("Mismatch item %d key %d value %d\n", total, w2->ulKey, w2->ulValue);
 			errors++;
 		}
 	}
-	if (total != h1->curEntries)
+	if (total != h1->ulCurEntries)
 		errors++;
 	printresult(errors, "Retesting iterator using #define macro");
 	
 
-	printresult(htIAddVal(h1, somevalue, NULL) != 0, "Attempted AddVal of already-present value");
+	printresult(iHtIAddVal(h1, somevalue, NULL) != 0, "Attempted AddVal of already-present value");
 	
-	printresult(htISetVal(h1, somevalue, NULL) != 1, "Attempted SetVal of already-present value");
+	printresult(iHtISetVal(h1, somevalue, NULL) != 1, "Attempted SetVal of already-present value");
 	
 	somevalue = rand();  // never before used value
-	printresult(htISetVal(h1, somevalue, NULL) != 1, "Attempted SetVal of non-present value");
+	printresult(iHtISetVal(h1, somevalue, NULL) != 1, "Attempted SetVal of non-present value");
 	
 	// now delete the first handful and see if they're gone
 //	printf ("Hashtable has %d entries, deleting 10 of them\n", h1->curEntries);
 	srand(1);
-	int entries = h1->curEntries;
+	int entries = h1->ulCurEntries;
 	for (int i = 0; i < 10; i++) {
-		htIDelete(h1, rand());
+		iHtIDelete(h1, rand());
 	}
-	printresult(entries-10 != h1->curEntries, "Deletion from table");
+	printresult(entries-10 != h1->ulCurEntries, "Deletion from table");
 	entries = 0;
 	srand(1);
 	for (int i = 0; i < NUMINTKEYS_H1; i++) {
-		entries += htIAddVal(h1, rand(), NULL);
+		entries += iHtIAddVal(h1, rand(), NULL);
 	}
 	printresult(entries != 10, "Checking to insure delections happened");
 
@@ -141,10 +141,10 @@ int main(int argc, const char * argv[]) {
 	count = fillsamples(in, NUMSTRINGS, samples, STRINGLEN, space);
 	printf ("Sample count %d, adding them to the hash table\n", count);
 	for (int i = 0; i < count; i++) {
-		inserts += htSAddVal(h2, samples[i], samples[i]);
+		inserts += iHtSAddVal(h2, samples[i], samples[i]);
 	}
 	printf ("Of %d samples, %d of them were unique\n", count, inserts);
-	htPrintStats(h2);
+	vHtPrintStats(h2);
 	return 0;
 }
 

@@ -40,7 +40,7 @@ static const char* TAG = "hashtab";
 #define htPRINTSTATS	1	// if set, detailed statistics printing enabled
 
 // allocate and add more entries to freelist, if allowed and if malloc succeeds
-static int morefree(hashtab_t *tab, unsigned num2add)
+static int prvMorefree(hashtab_t *tab, unsigned num2add)
 {
 	int i;
 	hashent_t *e;
@@ -49,42 +49,42 @@ static int morefree(hashtab_t *tab, unsigned num2add)
 	size += sizeof (size_t) - (size & (sizeof (size_t) - 1));
 	
 	// check if we're allowed to add more, and if so, can acquire space
-	if ((tab->maxEntries && tab->curEntries + num2add > tab->maxEntries)
+	if ((tab->ulMaxEntries && tab->ulCurEntries + num2add > tab->ulMaxEntries)
 		 || !(e = (hashent_t *) malloc(size * num2add))) {
 		return (0);
 	}
 	for (i = 0; i < num2add; i++) {
-		e->freelist = tab->freelist; // put entry on free list
-		tab->freelist = e;
+		e->pxFreelist = tab->pxFreelist; // put entry on free list
+		tab->pxFreelist = e;
 		void *alignit = e; alignit += size; e = alignit; // nuts
 	}
-	return (tab->allocSize);
+	return (tab->ulAllocSize);
 }
 
 // Get a free entry from the freelist of a table to add to the table
-static hashent_t *newhashent(hashtab_t *table)
+static hashent_t *prvNewhashent(hashtab_t *table)
 {
-	hashent_t *e = table->freelist;
+	hashent_t *e = table->pxFreelist;
 	
 	if (e) {
-		table->freelist = (hashent_t *)e->freelist;
+		table->pxFreelist = (hashent_t *)e->pxFreelist;
 	} else {
-		if (morefree(table, table->allocSize))
-			return (newhashent(table));
+		if (prvMorefree(table, table->ulAllocSize))
+			return (prvNewhashent(table));
 	}
-	table->curEntries++;
+	table->ulCurEntries++;
 	LLINKSINIT((dlList_t *)e);
 	return(e);
 }
-static void freehashent (hashtab_t *table, hashent_t *entry)
+static void prvFreehashent (hashtab_t *table, hashent_t *entry)
 {
-	entry->freelist = table->freelist;
-	table->freelist = entry;
-	table->curEntries--;
+	entry->pxFreelist = table->pxFreelist;
+	table->pxFreelist = entry;
+	table->ulCurEntries--;
 }
 
 // Hashing functions.  Feel free to improve this, it's ad-hoc
-static inline unsigned hashedname(const char *name)
+static inline unsigned prvHashedName(const char *name)
 {
 	unsigned hash = 0;
 	
@@ -92,7 +92,7 @@ static inline unsigned hashedname(const char *name)
 		hash = (hash >> 16) + ((hash << 5) ^ (*name));
 	return (hash);
 }
-static inline unsigned hashedint (unsigned key)
+static inline unsigned prvHashedInt (unsigned key)
 {
 	return (277 * key + key + 12345);
 }
@@ -101,20 +101,20 @@ static inline unsigned hashedint (unsigned key)
 // the entry is present, the correct hash entry.  Returns non-zero if the entry
 // was found.  The listhead arg is where we return the list it should have been in.
 // if name is NULL, the key is used to determine a match. If not, strcmp is used
-static int hashLookupCom (hashtab_t *table, unsigned key, const char *name,
+static int prvHashLookupCom (hashtab_t *table, unsigned key, const char *name,
 				   dlList_t **listheadp, hashent_t **entry)
 {
 	dlList_t *listhead;		// correct list for this name
 	hashent_t *e;			// the roamer through the list off the head
-	int bucketno = (name ? hashedname (name) : hashedint(key) ) % table->bucketCount;
+	int bucketno = (name ? prvHashedName (name) : prvHashedInt(key) ) % table->ulBucketCount;
 	
-	*listheadp = listhead = &table->buckets[bucketno];
+	*listheadp = listhead = &table->pxBuckets[bucketno];
 	
 	e = (hashent_t *)listhead->right;
-	for (; (dlList_t *)e != listhead; e = (hashent_t *)e->links.right) {
-		if (!name && key != e->key)
+	for (; (dlList_t *)e != listhead; e = (hashent_t *)e->xLinks.right) {
+		if (!name && key != e->ulKey)
 			continue;
-		if (name && strcmp(name, e->name) != 0)
+		if (name && strcmp(name, e->pcName) != 0)
 			continue;
 		*entry = e;
 		return (1);
@@ -122,139 +122,139 @@ static int hashLookupCom (hashtab_t *table, unsigned key, const char *name,
 	*entry = NULL;
 	return (0);
 }
-hashent_t * htIFindEntry (hashtab_t *table, unsigned key)
+hashent_t * pxHtIFindEntry (hashtab_t *table, unsigned key)
 {
 	dlList_t *listhead;
 	hashent_t *e;
 	
-	if (hashLookupCom(table, key, NULL, &listhead, &e))
+	if (prvHashLookupCom(table, key, NULL, &listhead, &e))
 		return (e);
 	return (NULL);
 }
-hashent_t * htSFindEntry (hashtab_t *table, const char *name)
+hashent_t * pxHtSFindEntry (hashtab_t *table, const char *name)
 {
 	dlList_t *listhead;
 	hashent_t *e;
 	
-	if (hashLookupCom(table, 0, name, &listhead, &e))
+	if (prvHashLookupCom(table, 0, name, &listhead, &e))
 		return (e);
 	return (NULL);
 }
 
 // Hash lookup general lookup routines.  Pass a name, get back a value, or not.
-void *htSGetVal (hashtab_t *table, const char *name)
+void *pvHtSGetVal (hashtab_t *table, const char *name)
 {
 	dlList_t *listhead;		// dumping ground - don't need this
 	hashent_t *e;
 	
-	(void) hashLookupCom(table, 0, name, &listhead, &e);
-	return (e ? e->value : NULL);
+	(void) prvHashLookupCom(table, 0, name, &listhead, &e);
+	return (e ? e->pxValue : NULL);
 }
-void *htIGetVal (hashtab_t *table, unsigned key)
+void *pvHtIGetVal (hashtab_t *table, unsigned key)
 {
 	dlList_t *listhead;		// dumping ground - don't need this
 	hashent_t *e;
 	
-	(void) hashLookupCom(table, key, NULL, &listhead, &e);
-	return (e ? e->value : NULL);
+	(void) prvHashLookupCom(table, key, NULL, &listhead, &e);
+	return (e ? e->pxValue : NULL);
 }
 
 // Finds an entry, selectively rewrites its value if found, adds it if not
-static int htISAddVal (hashtab_t *table, int overwrite, unsigned key, const char *name, void *value)
+static int prvHtISAddVal (hashtab_t *table, int overwrite, unsigned key, const char *name, void *value)
 {
 	dlList_t *listhead;
 	hashent_t *e;
 	
-	if (hashLookupCom(table, key, name, &listhead, &e)) {
+	if (prvHashLookupCom(table, key, name, &listhead, &e)) {
 		if (overwrite == htOVERWRITE) {
-			e->value = value;
+			e->pxValue = value;
 			return (1);
 		}
 		else
 			return (0);					//   already there, we don't touch it
 	}
-	e = newhashent(table);				// new entry, create and fill it
+	e = prvNewhashent(table);				// new entry, create and fill it
 	if (name)
-		e->name = name;
+		e->pcName = name;
 	else
-		e->key = key;
-	e->value = value;
+		e->ulKey = key;
+	e->pxValue = value;
 //	DEBUGPRINTF("entry %p, head %p (%p, %p): ", e, listhead, listhead->pxNext, listhead->pxPrev);
 	lInsert(listhead, (dlList_t *) e);
 //	DEBUGPRINTF("now: entry (%p, %p), head (%p, %p)\n", ((dlList_t *)e)->pxNext, ((dlList_t *)e)->pxPrev,listhead->pxNext, listhead->pxPrev);
 	return (1);
 }
-int htIAddVal (hashtab_t *table, unsigned key, void *value)
+int iHtIAddVal (hashtab_t *table, unsigned key, void *value)
 {
-	return htISAddVal (table, htNOOVERWRITE, key, NULL, value);
+	return prvHtISAddVal (table, htNOOVERWRITE, key, NULL, value);
 }
-int htSAddVal (hashtab_t *table, const char *name, void *value)
+int iHtSAddVal (hashtab_t *table, const char *name, void *value)
 {
-	return htISAddVal(table, htNOOVERWRITE, 0, name, value);
+	return prvHtISAddVal(table, htNOOVERWRITE, 0, name, value);
 }
-int htISetVal (hashtab_t *table, unsigned key, void *value)
+int iHtISetVal (hashtab_t *table, unsigned key, void *value)
 {
-	return htISAddVal(table, htOVERWRITE, key, NULL, value);
+	return prvHtISAddVal(table, htOVERWRITE, key, NULL, value);
 }
-int htSSetVal (hashtab_t *table, const char *name, void *value)
+int iHtSSetVal (hashtab_t *table, const char *name, void *value)
 {
-	return htISAddVal(table, htOVERWRITE, 0, name, value);
+	return prvHtISAddVal(table, htOVERWRITE, 0, name, value);
 }
 
 // delete an entry from the hash table -- frees storage, entry
 // returns number of deleted items, 0 or 1.  
 // if keep == HT_FREEOLDVALUE, we free() the deleted entry's value.
-int htISDelete (hashtab_t *table, unsigned key, const char *name)
+int iHtISDelete (hashtab_t *table, unsigned key, const char *name)
 {
 	dlList_t *listhead;
 	hashent_t *e;
 
-	if (hashLookupCom(table, key, name, &listhead, &e)) {
+	if (prvHashLookupCom(table, key, name, &listhead, &e)) {
 		lDelete ((dlList_t *) e);// unlink it
-		freehashent (table, e);			// put entry on free list
+		prvFreehashent (table, e);			// put entry on free list
 		return (1);
 	}
 	return (0);
 }
-int htSDelete (hashtab_t *table, const char *name)
+int iHtSDelete (hashtab_t *table, const char *name)
 {
-	return (htISDelete (table, 0, name));
+	return (iHtISDelete (table, 0, name));
 }
-int htIDelete (hashtab_t *table, unsigned key)
+int iHtIDelete (hashtab_t *table, unsigned key)
 {
-	return (htISDelete (table, key, NULL));
+	return (iHtISDelete (table, key, NULL));
 }
-void htEDelete (hashent_t *entry)
+void vHtEDelete (hashent_t *entry)
 {
 	lDelete ((dlList_t *)entry);
 }
 
-static void nextentry (htIterator_t *it) {
+static void prvNextentry (htIterator_t *it) {
 	// step through the buckets, and for each, step through the chain
-	while (it->bucket < it->table->bucketCount) {
-		hashent_t *curbucket = (hashent_t *)&it->table->buckets[it->bucket];
+	while (it->ulBucket < it->pxTable->ulBucketCount) {
+		hashent_t *curbucket = (hashent_t *)&it->pxTable->pxBuckets[it->ulBucket];
 		
-		if((it->next = (hashent_t *)((dlList_t *)it->next)->right) != curbucket) {
+		if((it->pxNext = (hashent_t *)((dlList_t *)it->pxNext)->right) != curbucket) {
 			return;
 		}
-		if (++it->bucket < it->table->bucketCount)
-			it->next = (hashent_t *)&it->table->buckets[it->bucket];
+		if (++it->ulBucket < it->pxTable->ulBucketCount)
+			it->pxNext = (hashent_t *)&it->pxTable->pxBuckets[it->ulBucket];
 	}
-	it->next = NULL;
+	it->pxNext = NULL;
 }
-void htInitIterator (htIterator_t *it, hashtab_t *table)
+void vHtInitIterator (htIterator_t *it, hashtab_t *table)
 {
-	it->table = table;
-	it->bucket = 0;
-	it->next = (hashent_t *)&table->buckets[0];
+	it->pxTable = table;
+	it->ulBucket = 0;
+	it->pxNext = (hashent_t *)&table->pxBuckets[0];
 	// find the next/first entry, if there are any
-	nextentry(it);
+	prvNextentry(it);
 }
-hashent_t *htIteratorNext (htIterator_t *it)
+hashent_t *pxHtIteratorNext (htIterator_t *it)
 {
-	hashent_t *retval = it->next;
+	hashent_t *retval = it->pxNext;
 	
-	nextentry(it);
+	prvNextentry(it);
 	return (retval);
 }
 
@@ -266,23 +266,23 @@ hashent_t *htIteratorNext (htIterator_t *it)
 // be allocated using rsrc, which might make sense, but we don't for now.
 // ***************************************************
 
-static rsrcPoolP_t hashTablePool;	// allocated once, when first needed
+rsrcPoolP_t xHashTablePool;	// allocated once, when first needed
 
 // The "long" print routine for hash table resources calls this
-static void printStatWrapper (rsrcPoolP_t pool, void *body)
+static void prvPrintStatWrapper (rsrcPoolP_t pool, void *body)
 {
-	htPrintStats ((hashtab_t *)body);
+	vHtPrintStats ((hashtab_t *)body);
 }
 void static inline initHashtabPool ()
 {
-	if (hashTablePool)
+	if (xHashTablePool)
 		return;
-	hashTablePool = pxRsrcNewDynPool("HashTables", sizeof (hashtab_t), 0);
-	if (!hashTablePool) {
+	xHashTablePool = pxRsrcNewDynPool("HashTables", sizeof (hashtab_t), 0);
+	if (!xHashTablePool) {
 		logPrintf("Can't allocate HASHTables rsrc pool, aborting now\n");
 		abort();
 	}
-	vRsrcSetPrintHelper(hashTablePool, printStatWrapper);
+	vRsrcSetPrintHelper(xHashTablePool, prvPrintStatWrapper);
 }
 
 // Allocate and initialize a hash table
@@ -294,10 +294,10 @@ hashtab_t *pxHtNewHashTable (const char *tablename, unsigned initentries, unsign
 	
 	initHashtabPool();
 	
-	if (entryincrement > htMAXALLOCSIZE) {
-		entryincrement = htMAXALLOCSIZE;
+	if (entryincrement > htMAX_ALLOCSIZE) {
+		entryincrement = htMAX_ALLOCSIZE;
 	}
-	tab = pxRsrcAlloc(hashTablePool, tablename);
+	tab = pxRsrcAlloc(xHashTablePool, tablename);
 	numbuckets |= 1;	// avoid degenerate case of even bucket count
 	if (tab == NULL
 		|| (listheads = (dlList_t *)malloc(sizeof (dlList_t) * numbuckets)) == NULL) {
@@ -309,20 +309,20 @@ hashtab_t *pxHtNewHashTable (const char *tablename, unsigned initentries, unsign
 	for (i = 0; i < numbuckets; i++) {
 		LLINKSINIT(&listheads[i]);
 	}
-	tab->tablename = tablename;
-	tab->maxEntries = maxentries;
-	tab->curEntries = 0;
-	tab->allocSize = entryincrement;
-	tab->bucketCount = numbuckets;
-	tab->buckets = listheads;
-	tab->freelist = NULL;
-	morefree(tab, initentries);
+	tab->pcTablename = tablename;
+	tab->ulMaxEntries = maxentries;
+	tab->ulCurEntries = 0;
+	tab->ulAllocSize = entryincrement;
+	tab->ulBucketCount = numbuckets;
+	tab->pxBuckets = listheads;
+	tab->pxFreelist = NULL;
+	prvMorefree(tab, initentries);
 	return (tab);
 }
 
 #ifdef htPRINTSTATS
 #define MAXCHAINLEN 32
-static int listlength (dlList_t *list)
+static int prvListLength (dlList_t *list)
 {
 	int len = 0;
 	
@@ -330,24 +330,24 @@ static int listlength (dlList_t *list)
 	hashent_t *e;			// the roamer through the list off the head
 	
 	e = (hashent_t *)list->right;
-	for (; (dlList_t *)e != list; e = (hashent_t *)e->links.right) {
+	for (; (dlList_t *)e != list; e = (hashent_t *)e->xLinks.right) {
 		len++;
 	}
 	return (len);
 }
-void htPrintStats(hashtab_t *table)
+void vHtPrintStats(hashtab_t *table)
 {
 	int chainlengths[MAXCHAINLEN]; // number chains with each length
 	int overmax = 0;		// length over the most we're istogramming
-	float idealchainlen = (float) table->curEntries / (float) table->bucketCount;
+	float idealchainlen = (float) table->ulCurEntries / (float) table->ulBucketCount;
 	int longest = 0;
 	
 	memset(chainlengths, 0, sizeof chainlengths);
 	// loop through buckets, create histogram of chain lengths
 	// The ideal is that chain actual lengths should cluster closely around
 	// the ideal -- which is the number of entries divided by nmber of buckets
-	for (int i = 0; i < table->bucketCount; i++) {
-		int len = listlength(&table->buckets[i]);
+	for (int i = 0; i < table->ulBucketCount; i++) {
+		int len = prvListLength(&table->pxBuckets[i]);
 
 		if (len > longest)
 			longest = len;
@@ -359,8 +359,8 @@ void htPrintStats(hashtab_t *table)
 	}
 	
 	// summarize findings
-	logPrintf("\nTABLE \"%s\"\n", table->tablename);
-	logPrintf("BUCKETS: %d, MAX_ENTRIES %d, CUR_ENTRIES %d, INCREMENT %d\n", table->bucketCount, table->maxEntries, table->curEntries, table->allocSize);
+	logPrintf("\nTABLE \"%s\"\n", table->pcTablename);
+	logPrintf("BUCKETS: %d, MAX_ENTRIES %d, CUR_ENTRIES %d, INCREMENT %d\n", table->ulBucketCount, table->ulMaxEntries, table->ulCurEntries, table->ulAllocSize);
 	logPrintf("CHAIN  CHAIN\nLENGTH COUNT\n");
 	for (int i = 0; i < MAXCHAINLEN; i++) {
 		if (chainlengths[i]) {
