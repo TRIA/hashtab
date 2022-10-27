@@ -201,9 +201,7 @@ int iHtSSetVal (hashtab_t *table, const char *name, void *value)
 	return prvHtISAddVal(table, htOVERWRITE, 0, name, value);
 }
 
-// delete an entry from the hash table -- frees storage, entry
-// returns number of deleted items, 0 or 1.  
-// if keep == HT_FREEOLDVALUE, we free() the deleted entry's value.
+// delete an entry from the hash table, if found. returns # freed, 0 or 1
 int iHtISDelete (hashtab_t *table, unsigned key, const char *name)
 {
 	dlList_t *listhead;
