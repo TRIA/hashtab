@@ -6,8 +6,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "hashtab.h"
-#include "rsrc.h"	// hash tables are allocated from a pool
 
 #ifndef _LISTUTILS_H_
 #define dlList_t 	Link_t		// compatible libraries, different names...
@@ -20,24 +18,31 @@
 
 // For use in FreeRTOS, translate POSIX APIs
 #define POSIX 1
-#ifdef POSIX
+#ifdef POSIX // ----- POSIX ------
 #include <stdio.h>
-#define DEBUGPRINTF(x...)	printf(x)
-#define logPrintf(x...)		printf(x)
+#include "hashtab.h"
+#include "rsrc.h"	// hash tables are allocated from a pool
 
-#else // for now, assume FreeRTOS
+#define DEBUGPRINTF(tag,format,x...)	printf("%s " format "\n",TAG,x)
+#define logPrintf(tag,format,x...)		printf("%s " format "\n",TAG,x)
+
+#else // ---- FreeRTOS -----
+#include "portability/port.h"
+#include "Common/hashtab.h"
+#include "Common/rsrc.h"
+
 #define malloc(x)	pvRsMemAlloc(x)
 #define free(res)	vRsMemFree(res)
-//#define DEBUGPRINTF			LOGI(TAG,x...)
-#define DEBUGPRINTF(x...)
-#define logPrintf(x...)			LOGI(TAG,x...)
+#define DEBUGPRINTF			LOGI
+#define logPrintf			LOGI
 
-static const char* TAG = "hashtab";
 #endif // POSIX
 
 #define htOVERWRITE 1		// overwrite existing entry with same key?
 #define htNOOVERWRITE 0
 #define htPRINTSTATS	1	// if set, detailed statistics printing enabled
+
+static const char* TAG = "[hashtab]"; // labels log message origin
 
 // allocate and add more entries to freelist, if allowed and if malloc succeeds
 static int prvMorefree(hashtab_t *tab, unsigned num2add)
@@ -179,9 +184,9 @@ static int prvHtISAddVal (hashtab_t *table, int overwrite, unsigned key, const c
 	else
 		e->ulKey = key;
 	e->pxValue = value;
-//	DEBUGPRINTF("entry %p, head %p (%p, %p): ", e, listhead, listhead->pxNext, listhead->pxPrev);
+//	DEBUGPRINTF(TAG,"entry %p, head %p (%p, %p): ", e, listhead, listhead->pxNext, listhead->pxPrev);
 	lInsert(listhead, (dlList_t *) e);
-//	DEBUGPRINTF("now: entry (%p, %p), head (%p, %p)\n", ((dlList_t *)e)->pxNext, ((dlList_t *)e)->pxPrev,listhead->pxNext, listhead->pxPrev);
+//	DEBUGPRINTF(TAG,"now: entry (%p, %p), head (%p, %p)", ((dlList_t *)e)->pxNext, ((dlList_t *)e)->pxPrev,listhead->pxNext, listhead->pxPrev);
 	return (1);
 }
 int iHtIAddVal (hashtab_t *table, unsigned key, void *value)
@@ -277,7 +282,7 @@ void static inline initHashtabPool ()
 		return;
 	xHashTablePool = pxRsrcNewDynPool("HashTables", sizeof (hashtab_t), 0);
 	if (!xHashTablePool) {
-		logPrintf("Can't allocate HASHTables rsrc pool, aborting now\n");
+		logPrintf(TAG,"Can't allocate HASHTables rsrc pool, aborting now%s", "");
 		abort();
 	}
 	vRsrcSetPrintHelper(xHashTablePool, prvPrintStatWrapper);
@@ -299,7 +304,7 @@ hashtab_t *pxHtNewHashTable (const char *tablename, unsigned initentries, unsign
 	numbuckets |= 1;	// avoid degenerate case of even bucket count
 	if (tab == NULL
 		|| (listheads = (dlList_t *)malloc(sizeof (dlList_t) * numbuckets)) == NULL) {
-		DEBUGPRINTF("unable to allocate buckets/entries for hashtable\n");
+		DEBUGPRINTF(TAG,"unable to allocate buckets/entries for hashtable%s", "");
 		if (tab)
 			vRsrcFree(tab);	// safe to delete, no storage will be lost
 		return (NULL);
@@ -357,18 +362,19 @@ void vHtPrintStats(hashtab_t *table)
 	}
 	
 	// summarize findings
-	logPrintf("\nTABLE \"%s\"\n", table->pcTablename);
-	logPrintf("BUCKETS: %d, MAX_ENTRIES %d, CUR_ENTRIES %d, INCREMENT %d\n", table->ulBucketCount, table->ulMaxEntries, table->ulCurEntries, table->ulAllocSize);
-	logPrintf("CHAIN  CHAIN\nLENGTH COUNT\n");
+	logPrintf(TAG,"\nTABLE \"%s\"", table->pcTablename);
+	logPrintf(TAG,"BUCKETS: %d, MAX_ENTRIES %d, CUR_ENTRIES %d, INCREMENT %d", table->ulBucketCount, table->ulMaxEntries, table->ulCurEntries, table->ulAllocSize);
+	logPrintf(TAG,"CHAIN  CHAIN%s", "");
+	logPrintf(TAG,"LENGTH COUNT%s", "");
 	for (int i = 0; i < MAXCHAINLEN; i++) {
 		if (chainlengths[i]) {
-			logPrintf("%6d: %d\n", i, chainlengths[i]);
+			logPrintf(TAG,"%6d: %d", i, chainlengths[i]);
 		}
 	}
-	logPrintf("Ideal average chain length: %7.2f\n", idealchainlen);
-	logPrintf("Longest chain %d\n", longest);
-	logPrintf("CHAINS OVER %d: %d\n", MAXCHAINLEN, overmax);
-	logPrintf("EMPTY BUCKETS: %d\n", chainlengths[0]);
+	logPrintf(TAG,"Ideal average chain length: %7.2f", idealchainlen);
+	logPrintf(TAG,"Longest chain %d", longest);
+	logPrintf(TAG,"CHAINS OVER %d: %d", MAXCHAINLEN, overmax);
+	logPrintf(TAG,"EMPTY BUCKETS: %d", chainlengths[0]);
 }
 #else
 void htPrintStats(hashtab_t *table)
